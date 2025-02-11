@@ -1,10 +1,7 @@
-openpyxl
-streamli
+streamlit
 pandas
 numpy
 pyproj
 folium
 geopandas
 shapely
-streamlit-folium
-
