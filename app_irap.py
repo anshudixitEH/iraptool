@@ -94,13 +94,13 @@ if not gdf.empty:
 else:
     st.stop()
 
-# -------------------- Step 3: Define Essex Bounding Box and Filter Out KSI Count 0 --------------------
+# -------------------- Step 3: Define Essex Bounding Box and Filter --------------------
 bbox_coords = {"south": 51.2, "north": 52.3, "west": -0.2, "east": 1.5}
 essex_bbox = box(bbox_coords["west"], bbox_coords["south"], bbox_coords["east"], bbox_coords["north"])
 
-# Apply bounding box filter and remove rows with KSI Count of 0
+# Apply bounding box filter (Rows with a KSI Count of 0 are now kept)
 gdf = gdf[gdf.intersects(essex_bbox)]
-gdf = gdf[gdf['KSI Count'] != 0]
+# Note: The line filtering out KSI Count == 0 has been removed.
 
 # -------------------- Step 4: Streamlit UI Sidebar Filters --------------------
 st.sidebar.header("Filters")
@@ -154,16 +154,17 @@ if not gdf_filtered.empty:
         gdf_filtered = gdf_filtered[combined_ksi]
 
 # -------------------- Step 6: Smooth the Road Geometries --------------------
-def smooth_geometry(geom, smoothing_factor=0, num_points=500):
+def smooth_geometry(geom, smoothing_factor=2, num_points=500):
     """
     Smooth a LineString using spline interpolation.
+    The smoothing_factor (s) is set to a positive value to smooth the curve.
     Returns a new LineString with more interpolated points.
     """
     try:
         if geom.geom_type == "LineString" and len(geom.coords) > 2:
             x, y = geom.xy
             x, y = list(x), list(y)
-            tck, u = splprep([x, y], s=smoothing_factor)  # s=0 for exact interpolation
+            tck, u = splprep([x, y], s=smoothing_factor)  # s>0 for smoothing
             unew = np.linspace(0, 1.0, num=num_points)
             out = splev(unew, tck)
             return LineString(list(zip(out[0], out[1])))
@@ -173,10 +174,10 @@ def smooth_geometry(geom, smoothing_factor=0, num_points=500):
         return geom
 
 if not gdf_filtered.empty:
-    # Optionally, create a copy to avoid SettingWithCopyWarning:
+    # Create a copy to avoid SettingWithCopyWarning:
     gdf_filtered = gdf_filtered.copy()
     gdf_filtered['geometry'] = gdf_filtered['geometry'].apply(
-        lambda geom: smooth_geometry(geom, smoothing_factor=0, num_points=500)
+        lambda geom: smooth_geometry(geom, smoothing_factor=2, num_points=500)
     )
 
 # -------------------- Step 7: Create Map with Color Coding --------------------
