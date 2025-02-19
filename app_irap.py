@@ -100,7 +100,7 @@ essex_bbox = box(bbox_coords["west"], bbox_coords["south"], bbox_coords["east"],
 
 # Apply bounding box filter (Rows with a KSI Count of 0 are now kept)
 gdf = gdf[gdf.intersects(essex_bbox)]
-# Note: The line filtering out KSI Count == 0 has been removed.
+# Note: We are no longer removing rows where KSI Count == 0.
 
 # -------------------- Step 4: Streamlit UI Sidebar Filters --------------------
 st.sidebar.header("Filters")
@@ -127,6 +127,7 @@ st.sidebar.header("KSI Count Filter & Legend")
 ksi_legend_html = """
 <div style="background: white; padding: 10px; border: 1px solid #cccccc; border-radius: 5px; margin-bottom: 10px;">
   <strong>KSI Count Legend</strong><br>
+  <span style="background: green; width: 12px; height: 12px; display: inline-block; margin-right: 5px;"></span>0<br>
   <span style="background: yellow; width: 12px; height: 12px; display: inline-block; margin-right: 5px;"></span>1–4<br>
   <span style="background: orange; width: 12px; height: 12px; display: inline-block; margin-right: 5px;"></span>5–7<br>
   <span style="background: red; width: 12px; height: 12px; display: inline-block; margin-right: 5px;"></span>8+<br>
@@ -134,12 +135,15 @@ ksi_legend_html = """
 """
 st.sidebar.markdown(ksi_legend_html, unsafe_allow_html=True)
 
+filter_0   = st.sidebar.checkbox("Include KSI 0", True)
 filter_1_4 = st.sidebar.checkbox("Include KSI 1–4", True)
 filter_5_7 = st.sidebar.checkbox("Include KSI 5–7", True)
 filter_8   = st.sidebar.checkbox("Include KSI 8+", True)
 
 if not gdf_filtered.empty:
     ksi_conditions = []
+    if filter_0:
+        ksi_conditions.append(gdf_filtered['KSI Count'] == 0)
     if filter_1_4:
         ksi_conditions.append((gdf_filtered['KSI Count'] >= 1) & (gdf_filtered['KSI Count'] <= 4))
     if filter_5_7:
@@ -183,7 +187,9 @@ if not gdf_filtered.empty:
 # -------------------- Step 7: Create Map with Color Coding --------------------
 def get_ksi_color(ksi):
     """Return a color based on the KSI Count."""
-    if 1 <= ksi <= 4:
+    if ksi == 0:
+        return 'green'
+    elif 1 <= ksi <= 4:
         return 'yellow'
     elif 5 <= ksi <= 7:
         return 'orange'
